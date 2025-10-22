@@ -1,0 +1,71 @@
+EBA5002: Graduate Certificate in Business Analytics Practice
+
+FUSION-3D: Technical + Twitter Sentiment for 3-Day Stock Direction
+
+Introduction 
+This project sits at the intersection of FinTech and quantitative equity modeling, targeting short-horizon signals where both price–volume dynamics and investor sentiment can create exploitable, near-term inefficiencies. We focus on a single, highly liquid name—Apple (AAPL)—and incorporate VGT as the industry context to disentangle stock-specific movement from broader technology trends. Inputs combine engineered technical indicators from daily OHLCV with Twitter-derived sentiment (cleaned, weighted, and aggregated close-to-close), forming a compact, data-driven feature set for short-term classification.
+We formulate a binary prediction of AAPL’s next-3-trading-day cumulative direction by training a Kronos-style primary model with calibrated probabilities, alongside concise benchmarks, under leakage-safe, time-series evaluation.
+
+
+
+Business Problem & Objectives
+Business question(s)
+Does incorporating public sentiment from Twitter, alongside traditional market data, give us a quantifiable predictive edge in forecasting the short-term (3-day) direction of Apple's stock compared to standard financial models? 
+Technical objectives
+Build an automated ETL pipeline to ingest and process daily market data (AAPL, VGT) and unstructured Twitter data.
+Develop a fusion model to predict the 3-day stock direction, combining technical indicators (70%) with Twitter sentiment (30%) using a Kronos-style primary model.
+Implement a rigorous, leakage-safe evaluation using walk-forward time-series validation with purged cross-validation and an embargo period.
+Benchmark against a suite of models (including Logistic Regression, XGBoost, and LSTM) and evaluate using key classification metrics like AUC and F1-Score to validate performance
+Business impact
+Faster Research: Provides a ready-to-use pipeline that accelerates the testing of new trading signals, cutting down research and development time.
+Lower Risk: Our rigorous, leakage-proof validation ensures model reliability and provides a trustworthy, auditable track record for compliance.
+Scalable Asset: The core system is easily adaptable to other stocks, creating a monetizable asset that can be packaged as a new data product or service. 
+3. Project Scope and Design
+Project Arrangement
+
+
+
+
+
+Figure 1. Project Design Flow Chart
+Phase 1 — Project Planning: Define the project scope to predict the 3-day direction of AAPL stock. Establish a rigorous, leakage-proof evaluation protocol using walk-forward validation with purged cross-validation.
+Phase 2 — ETL & Feature Building : Build an ETL pipeline for 10 years of market data (AAPL, VGT) and Twitter data. Engineer all technical indicators and create daily sentiment scores by analyzing tweets with FinBERT.
+Phase 3 — Modeling, Benchmark & Fusion: Develop the primary Kronos model and a suite of benchmark models (Logistic Regression, RandomForest, XGBoost, LSTM). Train all models using rolling time-series windows and fuse the technical and sentiment predictions.
+Phase 4 — Evaluation & Reporting: Report ROC and PR curves and evaluate performance using AUC, Confusion Matrix, Accuracy, Precision, Recall, F1-score.
+Project Data 
+Data sources
+Market (structured): `AAPL` daily OHLCV with extended fields(turnover, amplitude, pct_change, change_amount, turnover_rate) from AkShare ; daily OHLCV for sector ETF `VGT` via Yahoo Finance.
+Social (unstructured): Tweets are collected via twitterapi.io’s Advanced Search endpoint: query = “$TICKER” OR company keywords (e.g., iPhone, Mac). 
+Data quantity and Data quality
+Market: 2015-01-01 to 2025-10-01 for AAPL and VGT (~ 2,750 trading days each). AkShare is stable but may differ from Yahoo Finance due to corporate-action adjustments and late corrections.
+Tweets: final volume depends on filters—estimated from a few thousand to tens of thousands.  Vulnerable to spam, ambiguous relevance, cashtag noise.
+Data types
+Market: numeric  (`open, close, high, low, volume, turnover, amplitude, pct_change, change_amount, turnover_rate`) where available; `date` as YYYY-MM-DD (UTC EOD).
+Tweets: string (`text`), integers (`like_count, retweet_count, reply_count, quote_count`), ISO datetime (`created_at_utc`), and `engagement_score` (float)
+Potential challenges
+Vendor differences: AkShare vs Yahoo finance data alignment (adjustments, holidays, late updates); symbol mapping for ETFs across sources.
+Tweet relevance: noise from multi-cashtag posts/links, and cost/rate limits.
+Data preparation and transformation
+Market: enforce column order, normalize dates to YYYY-MM-DD, compute derived fields where appropriate (amplitude, pct_change, change_amount).
+Tweets: apply local noise filters (excess URLs/cashtags), compute an engagement score as a weighted function of likes, retweets, quotes, and replies (e.g., `engagement_score = sqrt(1 + likes + 2*retweets + 1.5*quotes + replies)`; weights to be tuned iteratively), and rank top-N per US/Eastern day.
+Data dictionary (key fields)
+
+       Figure 2. Data Dictionary (key fields)
+Analytical Methods
+Our approach uses a Kronos model combining technical indicators (70%) and FinBERT-based Twitter sentiment (30%). We benchmark it against Logistic Regression, Random Forest, XGBoost, and LSTM, and evaluate all models with F1, Precision, Recall, and ROC.
+Critical Success Factors
+Data integrity & alignment — 10+ years daily OHLCV for AAPL and VGT, adjusted prices, close→close windows, timezone sync, missing/halts handling, and Twitter quality filters.
+Leakage-safe evaluation — features strictly pre-close; time-series walk-forward with Purged CV and ≥3-day embargo; precise label/feature alignment.
+Signal quality & calibration — strong technical set + VGT relative strength/β; FinBERT sentiment weighted by influence×engagement with ~1-day decay; Platt/Isotonic calibration; 
+
+Key Deliverables 
+An Analytical Database: A clean, integrated, and analysis-ready database containing 10 years of market data (AAPL, VGT) and processed Twitter data. This includes all engineered features, such as technical indicators and aggregated sentiment scores.
+A Reproducible Modeling Codebase: The complete Python source code for the entire workflow. This includes the data ETL pipeline, feature engineering scripts, and the implementation of all predictive models—from the primary Kronos model to all benchmarks.
+Trained Models & Prediction Outputs: The final, trained versions of all predictive models, along with their calibration files. This also includes the model's direct outputs: the daily calibrated probabilities of an upward stock movement and the final binary predictions.
+
+Effort Estimates and Timeline
+
+                  Figure 3. Project Arrangement Gantt Chart
+References
+Araci, D. (2019). FinBERT: Financial sentiment analysis with pre-trained language models. arXiv preprint arXiv:1908.10063.
+Guo, C., Pleiss, G., Sun, Y., & Weinberger, K. Q. (2017). On calibration of modern neural networks. In Proceedings of the 34th International Conference on Machine Learning (ICML) (pp. 1321–1330). PMLR.
