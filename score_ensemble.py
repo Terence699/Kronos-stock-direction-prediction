@@ -257,6 +257,10 @@ class ScoreEnsemble:
         # Prepare features
         X, y, feature_cols = self.prepare_features(horizon)
         
+        # Restrict cross-validation to the first 80% to avoid leakage
+        split_idx = int(len(X) * 0.8)
+        X_cv, y_cv = X[:split_idx], y[:split_idx]
+        
         # Define weight combinations
         weight_combinations = self.define_weight_combinations()
         
@@ -272,17 +276,18 @@ class ScoreEnsemble:
                       f"VGT={weights['vgt_weight']:.2f}, "
                       f"Sentiment={weights['sentiment_weight']:.2f}")
             
-            # Calculate ensemble score using weights
-            ensemble_scores = self._calculate_weighted_ensemble_score(X, weights, horizon)
+            # Calculate ensemble score using weights on CV subset only
+            ensemble_scores = self._calculate_weighted_ensemble_score(X_cv, weights, horizon)
             
             # Convert scores to predictions (threshold at 0)
             predictions = (ensemble_scores > 0).astype(int)
             
             # Calculate cross-validation accuracy
             cv_scores = []
-            for train_idx, val_idx in tscv.split(X):
-                y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
-                pred_train, pred_val = predictions[train_idx], predictions[val_idx]
+            for train_idx, val_idx in tscv.split(X_cv):
+                # Evaluate strictly on validation fold within CV subset
+                y_val = y_cv.iloc[val_idx]
+                pred_val = predictions[val_idx]
                 
                 # Calculate accuracy for this fold
                 accuracy = accuracy_score(y_val, pred_val)

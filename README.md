@@ -12,6 +12,7 @@ Predictions target the next 1/3/5 trading-day direction. The system includes ind
 - Kronos-inspired modeling with a local offline implementation and an optional Hugging Face path
 - Grid search over AAPL/VGT/Sentiment weights for the ensemble
 - One-click main script to orchestrate scoring, ensembling, and visualization
+ - Fusion weights tuned on the first 80% of the timeline with 5-fold TimeSeriesSplit; the final 20% is a strict chronological holdout used only once for testing
 
 
 ## Project Structure
@@ -60,8 +61,8 @@ Notes
   - Aggregates to daily sentiment features and produces 1d/3d/5d sentiment scores
 - Ensemble (`score_ensemble.py`)
   - Loads/creates `aapl_scores.csv`, `vgt_scores.csv`, `sentiment_scores.csv`
-  - Inner join on date; time-series CV; searches weight combos for best accuracy
-  - Persists `combined_scores.csv`, `ensemble_results.pkl`, and text summary
+  - Inner join on date; tunes fusion weights via 5-fold TimeSeriesSplit on the first 80% of the series (chronological CV, no leakage into the test window)
+  - Evaluates once on the last 20% holdout; persists `combined_scores.csv`, `ensemble_results.pkl`, and a text summary
 - Visualization (`visualization.py`)
   - Produces multiple figures under `result_new/` including comparisons and grid-search analyses
 
@@ -152,7 +153,7 @@ python /Users/yuanyifu/Documents/NUS/Courses/BAP Practice/Formal Work/main_ensem
 
 ## Reproducibility and Evaluation
 - Rolling predictions use a 60-day lookback and produce per-day labels and predictions for 1d/3d/5d.
-- Ensemble uses time-series CV to pick weights and evaluates on a holdout split.
+- Ensemble tunes fusion weights with 5-fold TimeSeriesSplit on the training partition (first 80%) only; the last 20% is untouched during tuning and used once as a chronological holdout for final evaluation.
 - Key metrics: Accuracy, Precision, Recall, F1; plus returns-oriented indicators in the scorers.
 
 
