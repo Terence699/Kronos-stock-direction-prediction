@@ -716,12 +716,25 @@ class ComprehensiveModelEvaluator:
             raise ValueError('Param grid is empty. Provide param_grid or define it in ModelFactory.')
 
         results = []
-        for params in ParameterGrid(grid):
+        grid_items = list(ParameterGrid(grid))
+        total_params = len(grid_items)
+        for p_idx, params in enumerate(grid_items, start=1):
+            print(f"\nTuning {model_name} {horizon}: params set {p_idx}/{total_params} -> {params}")
             model = self.factory.create_model_with_params(model_name, horizon, params)
             fold_scores = []
-            for train_idx, val_idx in tscv.split(X_numeric):
+            for fold_i, (train_idx, val_idx) in enumerate(tscv.split(X_numeric), start=1):
+                print(f"  Fold {fold_i}/{cv_folds} ...")
                 X_train, X_val = X_numeric.iloc[train_idx], X_numeric.iloc[val_idx]
                 y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+                # enrich DL logs if available
+                if hasattr(model, 'verbose'):
+                    try:
+                        model.verbose = True  # show progress for DL so it doesn't look stuck
+                        # log every ~10% of epochs (at least every 5)
+                        model.log_every = max(5, int(getattr(model, 'epochs', 50) / 10))
+                        model.context = f"[{model_name} {horizon} params={params} fold={fold_i}]"
+                    except Exception:
+                        pass
                 model.train(X_train, y_train)
                 y_pred = model.predict(X_val)
                 n = min(len(y_val), len(y_pred))

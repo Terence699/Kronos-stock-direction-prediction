@@ -2,7 +2,7 @@
   "hidden_size": [32, 64, 128],
   "num_layers": [1, 2],
   "sequence_length": [20, 30],
-  "epochs": [20, 40],
+  "epochs": [40, 60],
   "lr": [0.001, 0.0005],
   "batch_size": [32, 64]
 }

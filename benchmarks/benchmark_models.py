@@ -532,7 +532,7 @@ class XGBoostModel(MachineLearningModel):
 class DeepLearningModel(BaseModel):
     """Base class for deep learning models"""
     
-    def __init__(self, name: str, horizon: str = '1d', sequence_length: int = 20, epochs: int = 50, lr: float = 1e-3, batch_size: int = 32):
+    def __init__(self, name: str, horizon: str = '1d', sequence_length: int = 20, epochs: int = 50, lr: float = 1e-3, batch_size: int = 32, verbose: bool = True, log_every: int = 10):
         super().__init__(name, horizon)
         if not TORCH_AVAILABLE:
             raise ImportError("PyTorch is not available")
@@ -543,6 +543,10 @@ class DeepLearningModel(BaseModel):
         self.epochs = epochs
         self.lr = lr
         self.batch_size = batch_size
+        # logging controls
+        self.verbose = verbose
+        self.log_every = max(1, int(log_every))
+        self.context: str = ""
     
     def prepare_features(self, data: pd.DataFrame) -> pd.DataFrame:
         """Prepare features for deep learning models"""
@@ -627,9 +631,10 @@ class DeepLearningModel(BaseModel):
                 total += batch_y.size(0)
                 correct += (predicted == batch_y).sum().item()
             
-            if epoch % 10 == 0:
-                accuracy = 100 * correct / total
-                print(f'Epoch {epoch}, Loss: {total_loss/len(dataloader):.4f}, Accuracy: {accuracy:.2f}%')
+            if self.verbose and (epoch % self.log_every == 0 or epoch == self.epochs - 1):
+                accuracy = 100 * correct / max(1, total)
+                prefix = f"{self.context} " if self.context else ""
+                print(f'{prefix}Epoch {epoch}, Loss: {total_loss/len(dataloader):.4f}, Accuracy: {accuracy:.2f}%')
         
         self.is_trained = True
         

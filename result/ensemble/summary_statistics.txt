@@ -59,4 +59,4 @@ Optimal Weights:
 - Final models show balanced performance across all metrics
 - Sentiment analysis contributes significantly to ensemble performance
 
-Report generated on: 2025-10-23 15:08:10
+Report generated on: 2025-10-23 19:43:46
