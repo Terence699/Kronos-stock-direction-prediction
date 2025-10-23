@@ -54,6 +54,54 @@ except ImportError:
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Optional, Any
 import os
+from config import BENCHMARKS_OUTPUT_DIR, SENTIMENT_SCORES
+
+def merge_sentiment_into_features(features: pd.DataFrame, horizon: str) -> pd.DataFrame:
+    """Merge cached sentiment features into the given feature DataFrame if available.
+    Looks first in benchmarks output dir, then falls back to ensemble sentiment_scores.
+    """
+    if 'date' not in features.columns:
+        return features
+    
+    # Determine sentiment scores path
+    bench_sent_path = str(BENCHMARKS_OUTPUT_DIR / "sentiment_scores.csv")
+    ensemble_sent_path = str(SENTIMENT_SCORES)
+    sentiment_path = bench_sent_path if os.path.exists(bench_sent_path) else (
+        ensemble_sent_path if os.path.exists(ensemble_sent_path) else None
+    )
+    
+    if sentiment_path is None:
+        return features
+    
+    try:
+        sentiment_df = pd.read_csv(sentiment_path)
+    except Exception:
+        return features
+    
+    if 'date' not in sentiment_df.columns:
+        return features
+    
+    # Ensure dates are comparable
+    try:
+        features = features.copy()
+        features['date'] = pd.to_datetime(features['date'])
+        sentiment_df['date'] = pd.to_datetime(sentiment_df['date'])
+    except Exception:
+        pass
+    
+    # Select useful sentiment columns
+    base_cols = ['sentiment_score', 'sentiment_strength', 'volume_weighted_sentiment']
+    pred_col = f'sentiment_pred_{horizon}'
+    selected_cols = ['date'] + [c for c in base_cols if c in sentiment_df.columns]
+    if pred_col in sentiment_df.columns:
+        selected_cols.append(pred_col)
+    
+    # If nothing to merge, return as-is
+    if len(selected_cols) == 1:
+        return features
+    
+    merged = features.merge(sentiment_df[selected_cols], on='date', how='left')
+    return merged
 
 class BaseModel(ABC):
     """Abstract base class for all benchmark models"""
@@ -345,6 +393,8 @@ class MachineLearningModel(BaseModel):
         features['bb_lower'] = bb_middle - (bb_std * 2)
         features['bb_position'] = (features['close'] - features['bb_lower']) / (features['bb_upper'] - features['bb_lower'])
         
+        # Merge sentiment features if available
+        features = merge_sentiment_into_features(features, self.horizon)
         return features
     
     def train(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
@@ -466,7 +516,7 @@ class LogisticRegressionModel(MachineLearningModel):
 class XGBoostModel(MachineLearningModel):
     """XGBoost Model"""
     
-    def __init__(self, n_estimators: int = 100, learning_rate: float = 0.1, horizon: str = '1d'):
+    def __init__(self, n_estimators: int = 100, learning_rate: float = 0.1, max_depth: int = 3, horizon: str = '1d'):
         super().__init__(f"XGB_{n_estimators}_{learning_rate}", horizon)
         if not XGBOOST_AVAILABLE:
             raise ImportError("XGBoost is not available")
@@ -474,6 +524,7 @@ class XGBoostModel(MachineLearningModel):
         self.model = xgb.XGBClassifier(
             n_estimators=n_estimators,
             learning_rate=learning_rate,
+            max_depth=max_depth,
             random_state=42,
             eval_metric='logloss'
         )
@@ -481,14 +532,17 @@ class XGBoostModel(MachineLearningModel):
 class DeepLearningModel(BaseModel):
     """Base class for deep learning models"""
     
-    def __init__(self, name: str, horizon: str = '1d'):
+    def __init__(self, name: str, horizon: str = '1d', sequence_length: int = 20, epochs: int = 50, lr: float = 1e-3, batch_size: int = 32):
         super().__init__(name, horizon)
         if not TORCH_AVAILABLE:
             raise ImportError("PyTorch is not available")
         
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.scaler = MinMaxScaler()
-        self.sequence_length = 20
+        self.sequence_length = sequence_length
+        self.epochs = epochs
+        self.lr = lr
+        self.batch_size = batch_size
     
     def prepare_features(self, data: pd.DataFrame) -> pd.DataFrame:
         """Prepare features for deep learning models"""
@@ -509,6 +563,8 @@ class DeepLearningModel(BaseModel):
             features[f'ma_{window}'] = features['close'].rolling(window).mean()
             features[f'ma_ratio_{window}'] = features['close'] / features[f'ma_{window}']
         
+        # Merge sentiment features if available
+        features = merge_sentiment_into_features(features, self.horizon)
         return features
     
     def create_sequences(self, data: np.ndarray, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -542,7 +598,7 @@ class DeepLearningModel(BaseModel):
         
         # Create data loader
         dataset = TensorDataset(X_tensor, y_tensor)
-        dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         
         # Initialize model
         input_size = X_seq.shape[2]
@@ -550,11 +606,11 @@ class DeepLearningModel(BaseModel):
         
         # Training setup
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
         
         # Training loop
         self.model.train()
-        for epoch in range(50):  # Reduced epochs for faster training
+        for epoch in range(self.epochs):
             total_loss = 0
             correct = 0
             total = 0
@@ -650,8 +706,8 @@ class DeepLearningModel(BaseModel):
 class LSTMModel(DeepLearningModel):
     """LSTM Model"""
     
-    def __init__(self, hidden_size: int = 64, num_layers: int = 2, horizon: str = '1d'):
-        super().__init__(f"LSTM_{hidden_size}_{num_layers}", horizon)
+    def __init__(self, hidden_size: int = 64, num_layers: int = 2, horizon: str = '1d', sequence_length: int = 20, epochs: int = 50, lr: float = 1e-3, batch_size: int = 32):
+        super().__init__(f"LSTM_{hidden_size}_{num_layers}", horizon, sequence_length=sequence_length, epochs=epochs, lr=lr, batch_size=batch_size)
         self.hidden_size = hidden_size
         self.num_layers = num_layers
     

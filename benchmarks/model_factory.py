@@ -14,6 +14,7 @@ Date: 2025
 """
 
 import os
+import json
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Any, Type
@@ -38,7 +39,24 @@ class ModelFactory:
     
     def __init__(self):
         self.available_models = self._register_models()
+        self.best_params = self._load_best_params()
         self.model_instances = {}
+
+    def _best_params_path(self) -> str:
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'best_params.json')
+
+    def _load_best_params(self) -> dict:
+        """Load team-agreed best parameters if present."""
+        path = self._best_params_path()
+        if os.path.exists(path):
+            try:
+                with open(path, 'r') as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    return data
+            except Exception:
+                pass
+        return {}
         
     def _register_models(self) -> Dict[str, Dict[str, Any]]:
         """Register all available models"""
@@ -48,27 +66,54 @@ class ModelFactory:
                 'class': LogisticRegressionModel,
                 'params': {'C': 1.0},
                 'category': 'ml',
-                'description': 'Logistic Regression'
+                'description': 'Logistic Regression',
+                'param_grid': {
+                    'C': [0.01, 0.1, 1.0, 10.0]
+                }
             },
-            'xgboost_100': {
+            'xgboost': {
                 'class': XGBoostModel,
                 'params': {'n_estimators': 100, 'learning_rate': 0.1},
                 'category': 'ml',
-                'description': 'XGBoost (100 trees)'
+                'description': 'XGBoost',
+                'param_grid': {
+                    'n_estimators': [100, 300],
+                    'learning_rate': [0.05, 0.1],
+                    'max_depth': [3, 5]
+                }
             },
-            'random_forest_100': {
+            'random_forest': {
                 'class': RandomForestModel,
                 'params': {'n_estimators': 100, 'max_depth': 10},
                 'category': 'ml',
-                'description': 'Random Forest (100 trees)'
+                'description': 'Random Forest',
+                'param_grid': {
+                    'n_estimators': [100, 300, 500],
+                    'max_depth': [None, 10, 20]
+                }
             },
 
             # Baseline Deep Learning Model
-            'lstm_64_2': {
+            'lstm': {
                 'class': LSTMModel,
-                'params': {'hidden_size': 64, 'num_layers': 2},
+                'params': {
+                    'hidden_size': 64,
+                    'num_layers': 2,
+                    'sequence_length': 20,
+                    'epochs': 50,
+                    'lr': 0.001,
+                    'batch_size': 32
+                },
                 'category': 'dl',
-                'description': 'LSTM (64 hidden, 2 layers)'
+                'description': 'LSTM',
+                'param_grid': {
+                    'hidden_size': [32, 64, 128],
+                    'num_layers': [1, 2],
+                    'sequence_length': [20, 30],
+                    'epochs': [20, 40],
+                    'lr': [1e-3, 5e-4],
+                    'batch_size': [32, 64]
+                }
             },
             
             # Existing Models
@@ -102,8 +147,39 @@ class ModelFactory:
         return {name: info for name, info in self.available_models.items() 
                 if info['category'] == category}
     
+    def get_param_grid(self, model_name: str) -> Dict[str, Any]:
+        info = self.available_models.get(model_name, {})
+        return info.get('param_grid', {})
+    
+    def create_model_with_params(self, model_name: str, horizon: str = '1d', override_params: Optional[Dict[str, Any]] = None) -> Any:
+        """Create a model instance with explicit parameter overrides."""
+        if model_name not in self.available_models:
+            raise ValueError(f"Model '{model_name}' not found. Available models: {list(self.available_models.keys())}")
+        model_info = self.available_models[model_name]
+        model_class = model_info['class']
+        params = model_info['params'].copy()
+        # merge best params then overrides
+        if model_name in self.best_params and isinstance(self.best_params[model_name], dict):
+            bp = self.best_params[model_name]
+            # Prefer horizon-specific block if present
+            if horizon in bp and isinstance(bp[horizon], dict):
+                params.update(bp[horizon])
+            else:
+                params.update(bp)
+        if override_params:
+            params.update(override_params)
+        if model_info['category'] in ('ml', 'dl'):
+            params['horizon'] = horizon
+        try:
+            instance = model_class(**params)
+            self.model_instances[f"{model_name}_{horizon}"] = instance
+            return instance
+        except Exception as e:
+            print(f"Error creating model {model_name} with params {params}: {e}")
+            return None
+
     def create_model(self, model_name: str, horizon: str = '1d') -> Any:
-        """Create a model instance"""
+        """Create a model instance with best_params merged if present"""
         if model_name not in self.available_models:
             raise ValueError(f"Model '{model_name}' not found. Available models: {list(self.available_models.keys())}")
         
@@ -111,6 +187,13 @@ class ModelFactory:
         model_class = model_info['class']
         params = model_info['params'].copy()
         category = model_info.get('category')
+        # merge best params if available
+        if model_name in self.best_params and isinstance(self.best_params[model_name], dict):
+            bp = self.best_params[model_name]
+            if horizon in bp and isinstance(bp[horizon], dict):
+                params.update(bp[horizon])
+            else:
+                params.update(bp)
         
         # Add horizon parameter only for ML/DL models
         if category in ('ml', 'dl'):
@@ -353,7 +436,7 @@ def test_model_factory():
     
     # Test creating models
     print(f"\nTesting Model Creation:")
-    test_models = ['logistic_regression', 'random_forest_100', 'xgboost_100']
+    test_models = ['logistic_regression', 'random_forest', 'xgboost']
     
     for model_name in test_models:
         model = factory.create_model(model_name, '1d')
@@ -404,7 +487,7 @@ def test_model_comparator():
     comparator = ModelComparator(factory)
     
     # Test comparison
-    test_models = ['logistic_regression', 'random_forest_100', 'xgboost_100']
+    test_models = ['logistic_regression', 'random_forest', 'xgboost']
     
     results = comparator.compare_models(test_models, data, 'target', '1d')
     

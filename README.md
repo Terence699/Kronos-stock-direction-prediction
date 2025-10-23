@@ -146,6 +146,7 @@ python test_dependencies.py --verbose
 # If you don't have the data files yet, you can skip file checks:
 # python test_dependencies.py --verbose --skip-data
 ```
+
 3) Prepare sentiment scores (optional)
 
 - Paths are centralized via `config.py`. If you want to precompute daily sentiment scores:
@@ -182,17 +183,62 @@ python -m benchmarks.comprehensive_evaluator
   - Numeric dumps: `grid_search_results.txt` (full CV grid per horizon), `summary_statistics.txt`
   - Plots: `model_comparison.png`, `ensemble_performance.png`, `time_series_analysis.png`, `grid_search_analysis.png`, `final_results_summary.png`
 - In `result/benchmarks/`:
+  - Data (cached): `aapl_scores.csv`, `vgt_scores.csv`, `sentiment_scores.csv` (auto-cached to avoid regeneration)
   - Artifacts: `comprehensive_evaluation_results.pkl`
   - Numeric dumps: `evaluation_summary.txt` (ranked summary), `evaluation_results_full.txt` (per-model metrics per horizon)
   - Plots: `comprehensive_model_comparison.png`, `category_performance_analysis.png`, `horizon_comparison_analysis.png`, `performance_distribution.png`
 
+**Note on Score Caching:**
+Both ensemble and benchmark pipelines automatically cache generated scores (`aapl_scores.csv`, `vgt_scores.csv`, `sentiment_scores.csv`). If a score file exists, it will be reused instead of regenerating. This saves time, especially for the slow FinBERT sentiment analysis. You can manually copy cached scores between `result/ensemble/` and `result/benchmarks/` to share results.
+
 ## Benchmarks: included models and how to configure
 
 - By default, benchmarks evaluate the following models via `benchmarks/model_factory.py`:
-  - ML: `logistic_regression`, `random_forest_100`, `xgboost_100`
-  - DL: `lstm_64_2`
+
+  - ML: `logistic_regression`, `random_forest`, `xgboost`
+  - DL: `lstm`
   - Existing: `kronos_aapl`, `kronos_vgt`, `sentiment_analysis`
+- Tuning (per teammate, CLI):
+
+  ```bash
+  # Use factory grids
+  python -m benchmarks.tune --model random_forest --horizon 1d --cv-folds 5
+
+  # Or supply your own grid file
+  python -m benchmarks.tune --model xgboost --horizon 3d --grid benchmarks/grids/xgb_3d.json
+  ```
+
+  - Outputs: `result/benchmarks/tuning/tuning_<model>_<horizon>.txt` (+ `.csv`)
+  - After alignment, write agreed params to `benchmarks/best_params.json` (horizon-aware):
+
+  ```json
+  {
+    "random_forest": {
+      "1d": {"n_estimators": 300, "max_depth": 20},
+      "3d": {"n_estimators": 500, "max_depth": 10},
+      "5d": {"n_estimators": 300, "max_depth": null}
+    },
+    "xgboost": {
+      "1d": {"n_estimators": 300, "learning_rate": 0.05, "max_depth": 5},
+      "3d": {"n_estimators": 100, "learning_rate": 0.1, "max_depth": 3},
+      "5d": {"n_estimators": 300, "learning_rate": 0.05, "max_depth": 3}
+    },
+    "logistic_regression": {
+      "1d": {"C": 0.1},
+      "3d": {"C": 1.0},
+      "5d": {"C": 1.0}
+    },
+    "lstm": {
+      "1d": {"hidden_size": 64,  "num_layers": 2, "sequence_length": 20, "epochs": 40, "lr": 0.001, "batch_size": 64},
+      "3d": {"hidden_size": 128, "num_layers": 2, "sequence_length": 30, "epochs": 40, "lr": 0.001, "batch_size": 64},
+      "5d": {"hidden_size": 64,  "num_layers": 2, "sequence_length": 30, "epochs": 40, "lr": 0.001, "batch_size": 64}
+    }
+  }
+  ```
+
+  - The factory auto-loads this file and prefers horizon-specific params when present; otherwise it falls back to model-level defaults.
 - Technical rule-based baselines are currently disabled.
+- Baseline features include sentiment when available: ML/DL models automatically merge cached sentiment features (`sentiment_score`, `sentiment_strength`, `volume_weighted_sentiment`, and `sentiment_pred_<horizon>`) from `result/benchmarks/sentiment_scores.csv` (or fall back to `result/ensemble/sentiment_scores.csv`). If no file is found, they run without sentiment columns.
 
 Control what runs:
 
@@ -210,6 +256,31 @@ Quick run variants (no pop-ups; files saved only):
   ```bash
   python -c "from benchmarks.comprehensive_evaluator import ComprehensiveModelEvaluator as E; e=E(); e.evaluate_all_models(categories=['existing']); e.create_performance_visualization(); e.save_results()"
   ```
+
+### Ready-made grids (per model × horizon)
+
+- logistic_regression: `benchmarks/grids/lr_1d.json`, `lr_3d.json`, `lr_5d.json`
+- random_forest: `benchmarks/grids/rf_1d.json`, `rf_3d.json`, `rf_5d.json`
+- xgboost: `benchmarks/grids/xgb_1d.json`, `xgb_3d.json`, `xgb_5d.json`
+- lstm: `benchmarks/grids/lstm_1d.json`, `lstm_3d.json`, `lstm_5d.json`
+
+Examples:
+
+```bash
+python -m benchmarks.tune --model logistic_regression --horizon 3d --grid benchmarks/grids/lr_3d.json
+python -m benchmarks.tune --model random_forest --horizon 5d --grid benchmarks/grids/rf_5d.json
+python -m benchmarks.tune --model xgboost --horizon 1d --grid benchmarks/grids/xgb_1d.json
+python -m benchmarks.tune --model lstm --horizon 3d --grid benchmarks/grids/lstm_3d.json
+```
+
+### One-shot run with team best params
+
+- Edit `benchmarks/best_params.json` (pre-filled defaults provided). The factory auto-loads it.
+- Then run the comprehensive suite once:
+
+```bash
+python -m benchmarks.comprehensive_evaluator
+```
 
 ## Usage Notes and Customization
 

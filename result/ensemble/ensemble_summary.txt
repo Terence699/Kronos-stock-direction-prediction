@@ -3,39 +3,39 @@ ENSEMBLE WEIGHT OPTIMIZATION SUMMARY
 
 1D HORIZON:
   Best Weights:
-    AAPL: 0.200
+    AAPL: 0.100
     VGT: 0.100
-    Sentiment: 0.700
-  CV Score: 0.6000
-  Test Accuracy: 0.5000
-  Test F1-Score: 0.5000
+    Sentiment: 0.800
+  CV Score: 0.4957
+  Test Accuracy: 0.5389
+  Test F1-Score: 0.5822
 
 3D HORIZON:
   Best Weights:
     AAPL: 0.100
-    VGT: 0.100
-    Sentiment: 0.800
-  CV Score: 0.6000
-  Test Accuracy: 0.5000
-  Test F1-Score: 0.6667
+    VGT: 0.300
+    Sentiment: 0.600
+  CV Score: 0.5206
+  Test Accuracy: 0.5363
+  Test F1-Score: 0.6151
 
 5D HORIZON:
   Best Weights:
-    AAPL: 0.100
+    AAPL: 0.200
     VGT: 0.100
-    Sentiment: 0.800
-  CV Score: 0.7000
-  Test Accuracy: 0.2500
-  Test F1-Score: 0.4000
+    Sentiment: 0.700
+  CV Score: 0.5284
+  Test Accuracy: 0.5207
+  Test F1-Score: 0.5727
 
 BEST PERFORMING HORIZON: 1D
-Accuracy: 0.5000
+Accuracy: 0.5389
 
 WEIGHT COMPARISON ACROSS HORIZONS:
 --------------------------------------------------
 Horizon  AAPL     VGT      Sentiment  Accuracy  
 --------------------------------------------------
-1d       0.200    0.100    0.700      0.5000    
-3d       0.100    0.100    0.800      0.5000    
-5d       0.100    0.100    0.800      0.2500    
+1d       0.100    0.100    0.800      0.5389    
+3d       0.100    0.300    0.600      0.5363    
+5d       0.200    0.100    0.700      0.5207    
 --------------------------------------------------

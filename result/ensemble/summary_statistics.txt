@@ -2,55 +2,55 @@ ENSEMBLE ANALYSIS SUMMARY STATISTICS
 ==================================================
 
 DATASET INFORMATION:
-- Total records: 16
-- Date range: 2025-09-02 00:00:00 to 2025-09-23 00:00:00
+- Total records: 1930
+- Date range: 2015-11-25 00:00:00 to 2025-09-23 00:00:00
 - Features: 9
 
 ENSEMBLE PERFORMANCE:
 ==================================================
 
 🏆 BEST PERFORMING MODEL: 1D
-Test Accuracy: 0.5000
-CV Score: 0.6000
+Test Accuracy: 0.5389
+CV Score: 0.4957
 Optimal Weights:
-  AAPL: 0.200
+  AAPL: 0.100
   VGT: 0.100
-  Sentiment: 0.700
+  Sentiment: 0.800
 
 ==================================================
 
 1D HORIZON:
 - Best Weights:
-  AAPL: 0.200
+  AAPL: 0.100
   VGT: 0.100
-  Sentiment: 0.700
-- CV Score: 0.6000
-- Test Accuracy: 0.5000
-- Test Precision: 0.5000
-- Test Recall: 0.5000
-- Test F1-Score: 0.5000
+  Sentiment: 0.800
+- CV Score: 0.4957
+- Test Accuracy: 0.5389
+- Test Precision: 0.5794
+- Test Recall: 0.5849
+- Test F1-Score: 0.5822
 
 3D HORIZON:
 - Best Weights:
   AAPL: 0.100
-  VGT: 0.100
-  Sentiment: 0.800
-- CV Score: 0.6000
-- Test Accuracy: 0.5000
-- Test Precision: 1.0000
-- Test Recall: 0.5000
-- Test F1-Score: 0.6667
+  VGT: 0.300
+  Sentiment: 0.600
+- CV Score: 0.5206
+- Test Accuracy: 0.5363
+- Test Precision: 0.5983
+- Test Recall: 0.6327
+- Test F1-Score: 0.6151
 
 5D HORIZON:
 - Best Weights:
-  AAPL: 0.100
+  AAPL: 0.200
   VGT: 0.100
-  Sentiment: 0.800
-- CV Score: 0.7000
-- Test Accuracy: 0.2500
-- Test Precision: 0.5000
-- Test Recall: 0.3333
-- Test F1-Score: 0.4000
+  Sentiment: 0.700
+- CV Score: 0.5284
+- Test Accuracy: 0.5207
+- Test Precision: 0.5688
+- Test Recall: 0.5767
+- Test F1-Score: 0.5727
 
 📊 GRID SEARCH INSIGHTS:
 ==================================================
@@ -59,4 +59,4 @@ Optimal Weights:
 - Final models show balanced performance across all metrics
 - Sentiment analysis contributes significantly to ensemble performance
 
-Report generated on: 2025-10-23 14:12:33
+Report generated on: 2025-10-23 15:08:10

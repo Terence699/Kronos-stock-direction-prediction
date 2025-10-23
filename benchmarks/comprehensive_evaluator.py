@@ -29,7 +29,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Machine Learning Libraries
-from sklearn.model_selection import TimeSeriesSplit, cross_val_score
+from sklearn.model_selection import TimeSeriesSplit, cross_val_score, ParameterGrid
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, confusion_matrix
 from sklearn.preprocessing import StandardScaler
 import joblib
@@ -132,48 +132,74 @@ class ComprehensiveModelEvaluator:
     def _evaluate_score_generator(self, model, data: pd.DataFrame, horizon: str) -> Dict[str, Any]:
         """Evaluate score generator models"""
         try:
-            # Generate scores
-            if hasattr(model, 'generate_scores'):
-                scores_df = model.generate_scores()
-                if scores_df is None:
-                    return {'error': 'Failed to generate scores'}
-                
-                # Ensure 'date' dtypes match for safe merge
-                if 'date' in data.columns:
-                    data_date = data['date']
-                    if not pd.api.types.is_datetime64_any_dtype(data_date):
-                        try:
-                            data = data.copy()
-                            data['date'] = pd.to_datetime(data['date'])
-                        except Exception:
-                            pass
-                if 'date' in scores_df.columns:
-                    scores_date = scores_df['date']
-                    if not pd.api.types.is_datetime64_any_dtype(scores_date):
-                        try:
-                            scores_df = scores_df.copy()
-                            scores_df['date'] = pd.to_datetime(scores_df['date'])
-                        except Exception:
-                            pass
-                
-                # Merge with main data
-                merged_data = data.merge(scores_df, on='date', how='inner')
-                
-                # Get prediction column
-                pred_col = f'{model.__class__.__name__.lower().replace("scoregenerator", "")}_pred_{horizon}'
-                if pred_col not in merged_data.columns:
-                    # Try alternative column names
-                    possible_cols = [col for col in merged_data.columns if f'pred_{horizon}' in col]
-                    if possible_cols:
-                        pred_col = possible_cols[0]
-                    else:
-                        return {'error': f'Prediction column not found for {horizon}'}
-                
-                # Calculate metrics
-                y_true = merged_data[f'target_{horizon}'].values
-                y_pred = (merged_data[pred_col] > 0).astype(int)
-                
-                return self._calculate_metrics(y_true, y_pred, model.__class__.__name__)
+            # Check for cached scores first
+            model_class_name = model.__class__.__name__.lower()
+            score_file = None
+            
+            if 'aapl' in model_class_name:
+                score_file = BENCHMARKS_OUTPUT_DIR / "aapl_scores.csv"
+            elif 'vgt' in model_class_name:
+                score_file = BENCHMARKS_OUTPUT_DIR / "vgt_scores.csv"
+            elif 'sentiment' in model_class_name:
+                score_file = BENCHMARKS_OUTPUT_DIR / "sentiment_scores.csv"
+            
+            # Try to load cached scores
+            scores_df = None
+            if score_file and os.path.exists(score_file):
+                print(f"  Loading cached scores from {score_file.name}...")
+                scores_df = pd.read_csv(score_file)
+                scores_df['date'] = pd.to_datetime(scores_df['date'])
+                print(f"  ✓ Loaded {len(scores_df)} cached records")
+            
+            # Generate scores if not cached
+            if scores_df is None:
+                if hasattr(model, 'generate_scores'):
+                    print(f"  Generating scores for {model_class_name}...")
+                    scores_df = model.generate_scores()
+                    if scores_df is None:
+                        return {'error': 'Failed to generate scores'}
+                    
+                    # Cache the scores for future use
+                    if score_file:
+                        scores_df.to_csv(score_file, index=False)
+                        print(f"  ✓ Cached scores to {score_file.name}")
+
+            # Ensure 'date' dtypes match for safe merge
+            if 'date' in data.columns:
+                data_date = data['date']
+                if not pd.api.types.is_datetime64_any_dtype(data_date):
+                    try:
+                        data = data.copy()
+                        data['date'] = pd.to_datetime(data['date'])
+                    except Exception:
+                        pass
+            if 'date' in scores_df.columns:
+                scores_date = scores_df['date']
+                if not pd.api.types.is_datetime64_any_dtype(scores_date):
+                    try:
+                        scores_df = scores_df.copy()
+                        scores_df['date'] = pd.to_datetime(scores_df['date'])
+                    except Exception:
+                        pass
+
+            # Merge with main data
+            merged_data = data.merge(scores_df, on='date', how='inner')
+
+            # Get prediction column
+            pred_col = f'{model.__class__.__name__.lower().replace("scoregenerator", "")}_pred_{horizon}'
+            if pred_col not in merged_data.columns:
+                # Try alternative column names
+                possible_cols = [col for col in merged_data.columns if f'pred_{horizon}' in col]
+                if possible_cols:
+                    pred_col = possible_cols[0]
+                else:
+                    return {'error': f'Prediction column not found for {horizon}'}
+
+            # Calculate metrics
+            y_true = merged_data[f'target_{horizon}'].values
+            y_pred = (merged_data[pred_col] > 0).astype(int)
+
+            return self._calculate_metrics(y_true, y_pred, model.__class__.__name__)
                 
         except Exception as e:
             return {'error': f'Score generator evaluation failed: {e}'}
@@ -317,6 +343,7 @@ class ComprehensiveModelEvaluator:
                 
                 category_models = self.factory.get_available_models(category)
                 
+                # Ignore old names if present
                 for model_name in category_models.keys():
                     result = self.evaluate_single_model(model_name, data, horizon)
                     
@@ -663,6 +690,65 @@ class ComprehensiveModelEvaluator:
                         f.write("\n")
                 f.write("\n")
         print(f"✓ Full text results saved to: {full_txt}")
+
+    def tune_model(self, model_name: str, horizon: str = '1d', param_grid: Dict[str, Any] = None, cv_folds: int = 5, output_dir: str = None):
+        """Time-series CV tuning for a single ML/DL model; writes TXT/CSV outputs."""
+        info = self.factory.get_model_info(model_name)
+        if info['category'] not in ('ml', 'dl'):
+            raise ValueError('Tuning is only supported for ML/DL models')
+
+        data = self.load_data()
+        target_col = f'target_{horizon}'
+        if target_col not in data.columns:
+            raise ValueError(f'Missing target column {target_col}')
+        y = data[target_col]
+
+        # Build features via model's own pipeline
+        base_model = self.factory.create_model(model_name, horizon)
+        X_features = base_model.prepare_features(data) if hasattr(base_model, 'prepare_features') else data
+        # Drop labels to prevent leakage
+        X_features = X_features.drop(columns=[c for c in X_features.columns if c.startswith('target_')], errors='ignore')
+        X_numeric = X_features.select_dtypes(include=[np.number]).fillna(0)
+
+        tscv = TimeSeriesSplit(n_splits=cv_folds)
+        grid = param_grid or self.factory.get_param_grid(model_name)
+        if not grid:
+            raise ValueError('Param grid is empty. Provide param_grid or define it in ModelFactory.')
+
+        results = []
+        for params in ParameterGrid(grid):
+            model = self.factory.create_model_with_params(model_name, horizon, params)
+            fold_scores = []
+            for train_idx, val_idx in tscv.split(X_numeric):
+                X_train, X_val = X_numeric.iloc[train_idx], X_numeric.iloc[val_idx]
+                y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+                model.train(X_train, y_train)
+                y_pred = model.predict(X_val)
+                n = min(len(y_val), len(y_pred))
+                fold_scores.append(accuracy_score(y_val.iloc[:n], y_pred[:n]))
+            results.append({'params': params, 'cv_mean': float(np.mean(fold_scores)), 'cv_std': float(np.std(fold_scores))})
+
+        # Sort and save
+        results.sort(key=lambda r: r['cv_mean'], reverse=True)
+        base_dir = output_dir or str(BENCHMARKS_OUTPUT_DIR)
+        out_dir = os.path.join(base_dir, 'tuning')
+        os.makedirs(out_dir, exist_ok=True)
+        txt_path = os.path.join(out_dir, f'tuning_{model_name}_{horizon}.txt')
+        with open(txt_path, 'w') as f:
+            for r in results:
+                f.write(f"{r['params']} => mean={r['cv_mean']:.4f}, std={r['cv_std']:.4f}\n")
+        try:
+            import csv
+            csv_path = os.path.join(out_dir, f'tuning_{model_name}_{horizon}.csv')
+            with open(csv_path, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=['cv_mean','cv_std','params'])
+                writer.writeheader()
+                for r in results:
+                    writer.writerow({'cv_mean': r['cv_mean'], 'cv_std': r['cv_std'], 'params': r['params']})
+        except Exception:
+            pass
+        print(f"Saved tuning results to: {txt_path}")
+        return results
 
 def main():
     """Main execution function"""

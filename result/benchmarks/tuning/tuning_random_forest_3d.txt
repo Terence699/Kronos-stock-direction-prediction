@@ -1,0 +1,9 @@
+{'max_depth': 20, 'n_estimators': 100} => mean=0.4829, std=0.0434
+{'max_depth': None, 'n_estimators': 300} => mean=0.4773, std=0.0411
+{'max_depth': None, 'n_estimators': 100} => mean=0.4773, std=0.0417
+{'max_depth': 20, 'n_estimators': 300} => mean=0.4763, std=0.0409
+{'max_depth': 10, 'n_estimators': 100} => mean=0.4744, std=0.0514
+{'max_depth': 10, 'n_estimators': 300} => mean=0.4725, std=0.0467
+{'max_depth': 20, 'n_estimators': 500} => mean=0.4720, std=0.0442
+{'max_depth': None, 'n_estimators': 500} => mean=0.4716, std=0.0423
+{'max_depth': 10, 'n_estimators': 500} => mean=0.4711, std=0.0440
