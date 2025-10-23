@@ -1,0 +1,222 @@
+FULL EVALUATION RESULTS
+================================================================================
+
+1D HORIZON
+--------------------------------------------------------------------------------
+Model: logistic_regression
+  accuracy_mean: 0.499526
+  precision_mean: 0.550585
+  recall_mean: 0.336298
+  f1_mean: 0.412338
+  accuracy_std: 0.011933
+  precision_std: 0.026732
+  recall_std: 0.077768
+  f1_std: 0.067679
+
+Model: xgboost_100
+  accuracy_mean: 0.487678
+  precision_mean: 0.525217
+  recall_mean: 0.364558
+  f1_mean: 0.416576
+  accuracy_std: 0.024916
+  precision_std: 0.042946
+  recall_std: 0.138747
+  f1_std: 0.107626
+
+Model: random_forest_100
+  accuracy_mean: 0.498104
+  precision_mean: 0.539189
+  recall_mean: 0.418278
+  f1_mean: 0.457729
+  accuracy_std: 0.022250
+  precision_std: 0.025934
+  recall_std: 0.134598
+  f1_std: 0.097810
+
+Model: lstm_64_2
+  accuracy_mean: 0.507960
+  precision_mean: 0.543292
+  recall_mean: 0.740661
+  f1_mean: 0.582879
+  accuracy_std: 0.023304
+  precision_std: 0.032913
+  recall_std: 0.284238
+  f1_std: 0.151585
+
+Model: kronos_aapl
+  accuracy_mean: 0.495951
+  precision_mean: 0.526127
+  recall_mean: 0.557663
+  f1_mean: 0.541436
+  accuracy_std: 0.000000
+  precision_std: 0.000000
+  recall_std: 0.000000
+  f1_std: 0.000000
+
+Model: kronos_vgt
+  accuracy_mean: 0.500810
+  precision_mean: 0.528892
+  recall_mean: 0.590288
+  f1_mean: 0.557906
+  accuracy_std: 0.000000
+  precision_std: 0.000000
+  recall_std: 0.000000
+  f1_std: 0.000000
+
+Model: sentiment_analysis
+  accuracy_mean: 0.523810
+  precision_mean: 0.545455
+  recall_mean: 0.545455
+  f1_mean: 0.545455
+  accuracy_std: 0.000000
+  precision_std: 0.000000
+  recall_std: 0.000000
+  f1_std: 0.000000
+
+
+3D HORIZON
+--------------------------------------------------------------------------------
+Model: logistic_regression
+  accuracy_mean: 0.510900
+  precision_mean: 0.600656
+  recall_mean: 0.440062
+  f1_mean: 0.478968
+  accuracy_std: 0.057863
+  precision_std: 0.044709
+  recall_std: 0.205861
+  f1_std: 0.136893
+
+Model: xgboost_100
+  accuracy_mean: 0.457820
+  precision_mean: 0.534809
+  recall_mean: 0.381434
+  f1_mean: 0.419998
+  accuracy_std: 0.027118
+  precision_std: 0.055071
+  recall_std: 0.179838
+  f1_std: 0.126446
+
+Model: random_forest_100
+  accuracy_mean: 0.475355
+  precision_mean: 0.549870
+  recall_mean: 0.385847
+  f1_mean: 0.394294
+  accuracy_std: 0.044398
+  precision_std: 0.057096
+  recall_std: 0.310992
+  f1_std: 0.193956
+
+Model: lstm_64_2
+  accuracy_mean: 0.503980
+  precision_mean: 0.534834
+  recall_mean: 0.614879
+  f1_mean: 0.543677
+  accuracy_std: 0.094992
+  precision_std: 0.100168
+  recall_std: 0.315050
+  f1_std: 0.195456
+
+Model: kronos_aapl
+  accuracy_mean: 0.509717
+  precision_mean: 0.569425
+  recall_mean: 0.576295
+  f1_mean: 0.572840
+  accuracy_std: 0.000000
+  precision_std: 0.000000
+  recall_std: 0.000000
+  f1_std: 0.000000
+
+Model: kronos_vgt
+  accuracy_mean: 0.527530
+  precision_mean: 0.581427
+  recall_mean: 0.613201
+  f1_mean: 0.596891
+  accuracy_std: 0.000000
+  precision_std: 0.000000
+  recall_std: 0.000000
+  f1_std: 0.000000
+
+Model: sentiment_analysis
+  accuracy_mean: 0.714286
+  precision_mean: 0.875000
+  recall_mean: 0.583333
+  f1_mean: 0.700000
+  accuracy_std: 0.000000
+  precision_std: 0.000000
+  recall_std: 0.000000
+  f1_std: 0.000000
+
+
+5D HORIZON
+--------------------------------------------------------------------------------
+Model: logistic_regression
+  accuracy_mean: 0.503318
+  precision_mean: 0.585869
+  recall_mean: 0.365155
+  f1_mean: 0.422185
+  accuracy_std: 0.020029
+  precision_std: 0.124734
+  recall_std: 0.193115
+  f1_std: 0.194487
+
+Model: xgboost_100
+  accuracy_mean: 0.491943
+  precision_mean: 0.583923
+  recall_mean: 0.404014
+  f1_mean: 0.441971
+  accuracy_std: 0.055322
+  precision_std: 0.065915
+  recall_std: 0.251701
+  f1_std: 0.159463
+
+Model: random_forest_100
+  accuracy_mean: 0.492891
+  precision_mean: 0.628908
+  recall_mean: 0.381978
+  f1_mean: 0.389254
+  accuracy_std: 0.051591
+  precision_std: 0.067785
+  recall_std: 0.336303
+  f1_std: 0.230076
+
+Model: lstm_64_2
+  accuracy_mean: 0.498010
+  precision_mean: 0.539511
+  recall_mean: 0.488286
+  f1_mean: 0.468344
+  accuracy_std: 0.070647
+  precision_std: 0.136885
+  recall_std: 0.320210
+  f1_std: 0.241539
+
+Model: kronos_aapl
+  accuracy_mean: 0.527126
+  precision_mean: 0.592896
+  recall_mean: 0.602778
+  f1_mean: 0.597796
+  accuracy_std: 0.000000
+  precision_std: 0.000000
+  recall_std: 0.000000
+  f1_std: 0.000000
+
+Model: kronos_vgt
+  accuracy_mean: 0.533603
+  precision_mean: 0.596257
+  recall_mean: 0.619444
+  f1_mean: 0.607629
+  accuracy_std: 0.000000
+  precision_std: 0.000000
+  recall_std: 0.000000
+  f1_std: 0.000000
+
+Model: sentiment_analysis
+  accuracy_mean: 0.666667
+  precision_mean: 0.750000
+  recall_mean: 0.545455
+  f1_mean: 0.631579
+  accuracy_std: 0.000000
+  precision_std: 0.000000
+  recall_std: 0.000000
+  f1_std: 0.000000
+
+
