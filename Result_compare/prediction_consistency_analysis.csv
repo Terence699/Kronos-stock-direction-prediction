@@ -1,0 +1,4 @@
+horizon,consistency_rate,total_predictions,consistent_predictions,different_predictions
+1d,0.9229576008273009,1934,1785,149
+3d,0.9115822130299897,1934,1763,171
+5d,0.9012409513960703,1934,1743,191
